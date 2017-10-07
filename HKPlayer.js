@@ -35,7 +35,7 @@ class HKPlayer
         const videoId = this.generateRandomId();
         this.virtualPlayers[videoId] = player.cloneNode(true);
         let videoDiv = document.createElement('div');
-        videoDiv.id = 'master-'+videoId;
+        videoDiv.id = 'HKPlayer-master-'+videoId;
         videoDiv.classList = 'HKPlayerPlayerTheme-'+player.getAttribute('theme');
 
         let video = document.createElement('video');
@@ -43,6 +43,8 @@ class HKPlayer
         video.controls = false;
         video.ontimeupdate = this.updateMediaProgress;
 
+        video.addEventListener('contextmenu', this.mediaContext, false);
+        video.addEventListener('click', this.playPauseMedia, false);
         video.addEventListener('loadstart', this.showMediaLoading, false);
         video.addEventListener('canplay', this.showMediaLoading, false);
 
@@ -55,6 +57,13 @@ class HKPlayer
         //player.appendChild(videoDiv);
         player.replaceWith(videoDiv);
     }
+
+    mediaContext(event)
+    {
+        event.preventDefault();
+        return false;
+    }
+
     _getControls(player, videoId)
     {
         let controlDiv = document.createElement('div');
@@ -107,7 +116,16 @@ class HKPlayer
         volumeMuteButton.innerHTML = ' ';
         volumeMuteButton.addEventListener('click',this.muteUnmuteMedia);
         controlDiv.appendChild(volumeMuteButton);
-        
+
+        let fullScreenToggleButton = document.createElement('button');
+        fullScreenToggleButton.id = 'HKPlayer-fullScreenToggle-'+videoId;
+        fullScreenToggleButton.setAttribute('data-for', videoId);
+        fullScreenToggleButton.classList = 'HKPlayer-fullScreenToggle';
+        fullScreenToggleButton.title = 'Fullscreen';
+        fullScreenToggleButton.innerHTML = ' ';
+        fullScreenToggleButton.addEventListener('click',this.fullScreen);
+        controlDiv.appendChild(fullScreenToggleButton);
+
         let volumeRange = document.createElement('input');
         volumeRange.type = 'range';
         volumeRange.min = 0;
@@ -123,6 +141,42 @@ class HKPlayer
         return controlDiv;
     }
 
+    fullScreen(control)
+    {
+        let button = control.srcElement;
+        let id = button.getAttribute('data-for');
+        let videoPlayer = document.getElementById('HKPlayer-master-'+id);
+        let isFullScreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+        if (isFullScreen)
+        {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+        else
+        {
+            if (videoPlayer.requestFullscreen) {
+                videoPlayer.requestFullscreen();
+            } else if (videoPlayer.mozRequestFullScreen) {
+                videoPlayer.mozRequestFullScreen();
+            } else if (videoPlayer.webkitRequestFullscreen) {
+                videoPlayer.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+            } else if (videoPlayer.msRequestFullscreen) {
+                videoPlayer.msRequestFullscreen();
+            }
+        }
+        if(typeof(callback) == "function")
+        {
+            callback();
+        }
+    }
+
     restartMedia(control)
     {
         let button = control.srcElement;
@@ -136,6 +190,12 @@ class HKPlayer
         let button = control.srcElement;
         let id = button.getAttribute('data-for');
         let video = document.getElementById(id);
+        if(!video)
+        {
+            video = control.srcElement;
+            id = video.id;
+            button = document.getElementById('HKPlayer-playPause-'+id);
+        }
         if (video.paused)
         {
             button.classList = 'HKPlayer-pause';

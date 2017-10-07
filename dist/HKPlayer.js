@@ -67,7 +67,7 @@ var HKPlayer = function () {
             var videoId = this.generateRandomId();
             this.virtualPlayers[videoId] = player.cloneNode(true);
             var videoDiv = document.createElement('div');
-            videoDiv.id = 'master-' + videoId;
+            videoDiv.id = 'HKPlayer-master-' + videoId;
             videoDiv.classList = 'HKPlayerPlayerTheme-' + player.getAttribute('theme');
 
             var video = document.createElement('video');
@@ -75,6 +75,8 @@ var HKPlayer = function () {
             video.controls = false;
             video.ontimeupdate = this.updateMediaProgress;
 
+            video.addEventListener('contextmenu', this.mediaContext, false);
+            video.addEventListener('click', this.playPauseMedia, false);
             video.addEventListener('loadstart', this.showMediaLoading, false);
             video.addEventListener('canplay', this.showMediaLoading, false);
 
@@ -86,6 +88,12 @@ var HKPlayer = function () {
             videoDiv.appendChild(controlDiv);
             //player.appendChild(videoDiv);
             player.replaceWith(videoDiv);
+        }
+    }, {
+        key: "mediaContext",
+        value: function mediaContext(event) {
+            event.preventDefault();
+            return false;
         }
     }, {
         key: "_getControls",
@@ -140,6 +148,15 @@ var HKPlayer = function () {
             volumeMuteButton.addEventListener('click', this.muteUnmuteMedia);
             controlDiv.appendChild(volumeMuteButton);
 
+            var fullScreenToggleButton = document.createElement('button');
+            fullScreenToggleButton.id = 'HKPlayer-fullScreenToggle-' + videoId;
+            fullScreenToggleButton.setAttribute('data-for', videoId);
+            fullScreenToggleButton.classList = 'HKPlayer-fullScreenToggle';
+            fullScreenToggleButton.title = 'Fullscreen';
+            fullScreenToggleButton.innerHTML = ' ';
+            fullScreenToggleButton.addEventListener('click', this.fullScreen);
+            controlDiv.appendChild(fullScreenToggleButton);
+
             var volumeRange = document.createElement('input');
             volumeRange.type = 'range';
             volumeRange.min = 0;
@@ -155,6 +172,38 @@ var HKPlayer = function () {
             return controlDiv;
         }
     }, {
+        key: "fullScreen",
+        value: function fullScreen(control) {
+            var button = control.srcElement;
+            var id = button.getAttribute('data-for');
+            var videoPlayer = document.getElementById('HKPlayer-master-' + id);
+            var isFullScreen = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            if (isFullScreen) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            } else {
+                if (videoPlayer.requestFullscreen) {
+                    videoPlayer.requestFullscreen();
+                } else if (videoPlayer.mozRequestFullScreen) {
+                    videoPlayer.mozRequestFullScreen();
+                } else if (videoPlayer.webkitRequestFullscreen) {
+                    videoPlayer.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+                } else if (videoPlayer.msRequestFullscreen) {
+                    videoPlayer.msRequestFullscreen();
+                }
+            }
+            if (typeof callback == "function") {
+                callback();
+            }
+        }
+    }, {
         key: "restartMedia",
         value: function restartMedia(control) {
             var button = control.srcElement;
@@ -168,6 +217,11 @@ var HKPlayer = function () {
             var button = control.srcElement;
             var id = button.getAttribute('data-for');
             var video = document.getElementById(id);
+            if (!video) {
+                video = control.srcElement;
+                id = video.id;
+                button = document.getElementById('HKPlayer-playPause-' + id);
+            }
             if (video.paused) {
                 button.classList = 'HKPlayer-pause';
                 video.play();
